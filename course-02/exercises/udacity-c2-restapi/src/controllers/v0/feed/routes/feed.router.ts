@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { FeedItem } from '../models/FeedItem';
 import { requireAuth } from '../../users/routes/auth.router';
 import * as AWS from '../../../../aws';
+import { url } from 'inspector';
 
 const router: Router = Router();
 
@@ -18,13 +19,57 @@ router.get('/', async (req: Request, res: Response) => {
 
 //@TODO
 //Add an endpoint to GET a specific resource by Primary Key
+router.get('/:id', async (req: Request, res: Response) => {
+    let { id } = req.params;
+    const item = await FeedItem.findOne({
+        where: {
+          id : id,
+        },
+      })
+    
+    if(!item) {res.send(404).send("item not found")}
+
+    if(item.url) {
+        item.url = AWS.getGetSignedUrl(item.url);
+    }
+    
+    res.send(item);
+});
 
 // update a specific resource
 router.patch('/:id', 
     requireAuth, 
     async (req: Request, res: Response) => {
-        //@TODO try it yourself
-        res.send(500).send("not implemented")
+        let { id } = req.params;
+        const caption = req.body.caption;
+        const fileName = req.body.url;
+
+        const itemtoupdate = await FeedItem.findOne({
+            where: {
+              id : id,
+            },
+        });
+
+        if(!itemtoupdate) {
+            return res.status(404).send({ message: 'Feed does not exist' });
+        }
+        // check Caption is valid
+        if (!caption) {
+            return res.status(400).send({ message: 'Caption is required or malformed' });
+        }
+
+        // check Filename is valid
+        if (!fileName) {
+            return res.status(400).send({ message: 'File url is required' });
+        }
+        
+        const saved_item = await itemtoupdate.update({
+            caption: caption,
+            url: fileName
+        });
+
+        saved_item.url = AWS.getGetSignedUrl(saved_item.url);
+        res.status(201).send(saved_item);
 });
 
 
