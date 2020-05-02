@@ -1,6 +1,7 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import {filterImageFromURL, deleteLocalFiles} from './util/util';
+import { IndexRouter } from './controllers/v0/index.router';
 
 (async () => {
 
@@ -32,30 +33,7 @@ import {filterImageFromURL, deleteLocalFiles} from './util/util';
   //! END @TODO1
   
   // Root Endpoint
-  // Displays a simple message to the user
-  app.get( "/", async ( req, res ) => {
-    res.send("try GET /filteredimage?image_url={{}}")
-  } );
-  
-  // Filter Image
-  app.get( "/filteredimage/", async ( req, res, next ) => {
-    const { image_url } = req.query;
-
-    // validate the image_url query
-    if(!image_url) {
-      return res.status(400).send('The image url is missing.');
-    }
-
-    // call filterImageFromURL(image_url) to filter the image
-    const filteredpath = await filterImageFromURL(image_url);
-    res.sendFile(filteredpath);
-
-    // deletes any files on the server on finish of the response
-    res.on('finish', () => {
-      deleteLocalFiles([filteredpath]);
-    } );
-
-  } );
+  app.use('/', IndexRouter)
 
   // Start the Server
   app.listen( port, () => {
